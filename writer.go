@@ -3,7 +3,9 @@ package protocolbytes
 type Buffer []byte
 
 func (w *Buffer) WInt8(i int8) {
-	*w = append((*w), byte(i))
+	p := w.growSlice(1)
+
+	(*w)[p] = byte(i)
 }
 
 func (w *Buffer) WInt16(i int16) {
@@ -21,7 +23,9 @@ func (w *Buffer) WInt64(i int64) {
 }
 
 func (w *Buffer) WUInt8(i uint8) {
-	*w = append((*w), i)
+	p := w.growSlice(1)
+
+	(*w)[p] = byte(i)
 }
 
 func (w *Buffer) WUInt16(i uint16) {
