@@ -82,3 +82,44 @@ func (w *Buffer) WVarLong(i int64) {
 		i >>= 7
 	}
 }
+
+func (w *Buffer) checkForReeslice(n int) (int, bool) {
+	c := cap((*w))
+	l := len((*w))
+
+	if c < l+n {
+		return l + n - c, true
+	}
+
+	return 0, false
+}
+
+func (w *Buffer) grow(n int) Buffer {
+	if *w == nil {
+		*w = make([]byte, 0, n)
+	}
+
+	l := len(*w)
+
+	if missingCap, ok := w.checkForReeslice(n); ok {
+		c := cap(*w)
+
+		newCap := c * 2
+		if newCap < l+n {
+			newCap = l + missingCap
+		}
+
+		ns := make([]byte, l, newCap)
+		copy(ns, *w)
+		*w = ns
+	}
+
+	*w = (*w)[:l+n]
+	return *w
+}
+
+func (w *Buffer) growSlice(n int) int {
+	l := len(*w) 
+	*w = w.grow(n)
+	return l
+}
