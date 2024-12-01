@@ -237,14 +237,3 @@ func BenchmarkWriterInt8(b *testing.B) {
 
 	b.ReportAllocs()
 }
-func BenchmarkWriteStandardInt8(b *testing.B) {
-	w := make([]byte, 1)
-
-	v := uint8(0x7F)
-
-	for i := 0; i < b.N; i++ {
-		w = append(w, byte(v))
-	}
-
-	b.ReportAllocs()
-}

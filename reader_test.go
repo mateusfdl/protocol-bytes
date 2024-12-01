@@ -278,19 +278,3 @@ func BenchmarkReaderInt8(b *testing.B) {
 
 	b.ReportAllocs()
 }
-
-func BenchmarkReaderStandardInt8(b *testing.B) {
-	m := make([]byte, 1)
-
-	for i := 0; i < b.N; i++ {
-		m = append(m, 0x7F)
-	}
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		m = m[1:]
-	}
-
-	b.ReportAllocs()
-}
