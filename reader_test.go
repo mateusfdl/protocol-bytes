@@ -227,8 +227,50 @@ func TestReaderVarInt(t *testing.T) {
 	}
 }
 
+func TestReaderReadingEmptyBuffer(t *testing.T) {
+  r := protocolbytes.Buffer([]byte{})
+
+  if len(r) != 0 {
+    t.Errorf("Expected %v, got %v", 0, len(r))
+  }
+
+  v := r.RVarInt()
+
+  if len(r) != 0 {
+    t.Errorf("Expected %v, got %v", 0, len(r))
+  }
+  if v != 0 {
+    t.Errorf("Expected %v, got %v", 0, v)
+  }
+}
+
+func TestReaderReadingEmptyBuffer2(t *testing.T) {
+  r := protocolbytes.Buffer([]byte{})
+
+  if len(r) != 0 {
+    t.Errorf("Expected %v, got %v", 0, len(r))
+  }
+
+  for i := 0; i < 100; i++ {
+    v := r.RVarInt()
+
+    if len(r) != 0 {
+      t.Errorf("Expected %v, got %v", 0, len(r))
+    }
+    if v != 0 {
+      t.Errorf("Expected %v, got %v", 0, v)
+    }
+  }
+}
+
 func BenchmarkReaderInt8(b *testing.B) {
 	r := protocolbytes.Buffer([]byte{})
+
+  for i := 0; i < b.N; i++ {
+    r.WInt8(0x7F)
+  }
+
+  b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		r.RInt8()
@@ -237,14 +279,18 @@ func BenchmarkReaderInt8(b *testing.B) {
 	b.ReportAllocs()
 }
 
-func BenckmarkReaderInt8Standard(b *testing.B) {
-
+func BenchmarkReaderStandardInt8(b *testing.B) {
 	m := make([]byte, 1)
 
-	for i := 0; i < b.N; i++ {
-		m[i] = 0x7F
-		_ = int8(m[0])
-	}
+  for i := 0; i < b.N; i++ {
+    m = append(m, 0x7F)
+  }
 
-	b.ReportAllocs()
+  b.ResetTimer()
+
+  for i := 0; i < b.N; i++ {
+    m = m[1:]
+  }
+
+  b.ReportAllocs()
 }
