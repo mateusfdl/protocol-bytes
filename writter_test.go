@@ -226,27 +226,25 @@ func TestWriterVarLong(t *testing.T) {
 	}
 }
 
-
 func BenchmarkWriterInt8(b *testing.B) {
-  w := protocolbytes.Buffer{}
+	w := protocolbytes.Buffer{}
 
-  v := uint8(0x7F)
+	v := uint8(0x7F)
 
-  for i := 0; i < b.N; i++ {
-    w.WUInt8(v)
-  }
+	for i := 0; i < b.N; i++ {
+		w.WUInt8(v)
+	}
 
-  b.ReportAllocs()
+	b.ReportAllocs()
 }
 func BenchmarkWriteStandardInt8(b *testing.B) {
-  w := make([]byte, 1)
+	w := make([]byte, 1)
 
-  v := uint8(0x7F)
+	v := uint8(0x7F)
 
-  for i := 0; i < b.N; i++ {
-    w = append(w, byte(v))
-  }
+	for i := 0; i < b.N; i++ {
+		w = append(w, byte(v))
+	}
 
-  b.ReportAllocs()
+	b.ReportAllocs()
 }
-
