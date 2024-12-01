@@ -108,8 +108,7 @@ func TestWriterUInt64(t *testing.T) {
 
 func TestWriterUTF(t *testing.T) {
 	w := protocolbytes.Buffer(make([]byte, 0, 2))
-
-	v := "Hello, World!"
+	v := "こんにちは、世界"
 
 	w.WUTF(v)
 
@@ -120,8 +119,8 @@ func TestWriterUTF(t *testing.T) {
 
 func TestWriterString(t *testing.T) {
 	w := protocolbytes.Buffer(make([]byte, 0, 2))
+	v := "Hello, World!"
 
-	v := "こんにちは、世界"
 	w.WString(v)
 
 	if w[0] != byte(len(v)) || string(w[1:]) != v {

@@ -1,92 +1,172 @@
 package protocolbytes
 
+import "unicode/utf8"
+
 type Buffer []byte
 
+// Read a int8 from the buffer
 func (w *Buffer) WInt8(i int8) {
 	p := w.growSlice(1)
 
 	(*w)[p] = byte(i)
 }
 
+// Write a int16 as a byte array
 func (w *Buffer) WInt16(i int16) {
-	*w = append((*w), byte(i>>8), byte(i))
+	p := w.growSlice(2)
+
+	(*w)[p] = byte(i >> 8)
+	(*w)[p+1] = byte(i)
 }
 
+// Write a int32 as a byte array
 func (w *Buffer) WInt32(i int32) {
-	*w = append((*w), byte(i>>24), byte(i>>16), byte(i>>8), byte(i))
+	p := w.growSlice(4)
+
+	(*w)[p] = byte(i >> 24)
+	(*w)[p+1] = byte(i >> 16)
+	(*w)[p+2] = byte(i >> 8)
+	(*w)[p+3] = byte(i)
 }
 
+// Write a int64 as a byte array
 func (w *Buffer) WInt64(i int64) {
+	p := w.growSlice(8)
+
 	for n := 0; n < 8; n++ {
-		*w = append((*w), byte(i>>(56-8*n)))
+		(*w)[p+n] = byte(i >> (56 - 8*n))
 	}
 }
 
+// Write a uint8 as a byte array
 func (w *Buffer) WUInt8(i uint8) {
 	p := w.growSlice(1)
 
 	(*w)[p] = byte(i)
 }
 
+// Write a uint16 as a byte array
 func (w *Buffer) WUInt16(i uint16) {
-	*w = append((*w), byte(i>>8), byte(i))
+	p := w.growSlice(2)
+
+	(*w)[p] = byte(i >> 8)
+	(*w)[p+1] = byte(i)
 }
 
+// Write a uint32 as a byte array
 func (w *Buffer) WUInt32(i uint32) {
-	*w = append((*w), byte(i>>24), byte(i>>16), byte(i>>8), byte(i))
+
+	p := w.growSlice(4)
+
+	(*w)[p] = byte(i >> 24)
+	(*w)[p+1] = byte(i >> 16)
+	(*w)[p+2] = byte(i >> 8)
+	(*w)[p+3] = byte(i)
 }
 
+// Write a uint64 as a byte array
 func (w *Buffer) WUInt64(i uint64) {
+	p := w.growSlice(8)
+
 	for n := 0; n < 8; n++ {
-		*w = append((*w), byte(i>>(56-8*n)))
+		(*w)[p+n] = byte(i >> (56 - 8*n))
 	}
 }
 
+// Write a string as a UTF-8 encoded string prefixed with its length
+// the length is the beginning byte of the string
+// If the string is not UTF use WString
 func (w *Buffer) WUTF(s string) {
-	w.WVarInt(int32(len(s)))
-	*w = append((*w), []byte(s)...)
-}
+	// Each rune can take up to utf8.UTFMax bytes.
+	requiredCapacity := len(s)*utf8.UTFMax + 1
 
-func (w *Buffer) WString(s string) {
-	w.WVarInt(int32(len(s)))
-	*w = append((*w), []byte(s)...)
-}
+	p := w.growSlice(requiredCapacity)
+	(*w)[p] = byte(len(s))
 
-func (w *Buffer) WBytes(b []byte) {
-	w.WVarInt(int32(len(b)))
-	*w = append((*w), b...)
-}
+  writePos := p + 1
+	for _, r := range s {
+		var buf [utf8.UTFMax]byte
+		n := utf8.EncodeRune(buf[:], r)
 
-func (w *Buffer) WBool(b bool) {
-	if b {
-		w.WUInt8(1)
-	} else {
-		w.WUInt8(0)
+		// Grow the buffer further if needed
+		if len(*w) < writePos+n {
+			w.grow(n)
+		}
+
+		copy((*w)[writePos:], buf[:n])
+		writePos += n
 	}
+
+	// Update the slice length to match the actual written content
+	*w = (*w)[:writePos]}
+
+// Write a string as a byte array prefixed with its length
+// If the string is UTF-8 use WUTF
+func (w *Buffer) WString(s string) {
+  p := w.growSlice(len(s) + 1)
+
+  (*w)[p] = byte(len(s))
+
+  for i, r := range s {
+    (*w)[p+i+1] = byte(r)
+  }
+}
+
+// Write a byte array prefixed with its length
+func (w *Buffer) WBytes(b []byte) {
+  p := w.growSlice(len(b) + 1)
+
+  (*w)[p] = byte(len(b))
+
+  for i, v := range b {
+    (*w)[p+i+1] = v
+  }
+}
+
+// Write a boolean as a byte
+func (w *Buffer) WBool(b bool) {
+  p := w.growSlice(1)
+
+  if b {
+    (*w)[p] = 1
+  } else {
+    (*w)[p] = 0
+  }
 }
 
 func (w *Buffer) WVarInt(i int32) {
-	for {
-		if (i & ^0x7f) == 0 {
-			w.WUInt8(uint8(i))
-			return
-		}
-		w.WUInt8(uint8(i&0x7f | 0x80))
-		i >>= 7
-	}
+  p := w.growSlice(5)
+
+  for {
+    if (i & ^0x7f) == 0 {
+      (*w)[p] = byte(i)
+      return
+    }
+
+    (*w)[p] = byte(i&0x7f | 0x80)
+    i >>= 7 
+    p++
+  }
 }
 
 func (w *Buffer) WVarLong(i int64) {
-	for {
-		if (i & ^0x7f) == 0 {
-			w.WUInt8(uint8(i))
-			return
-		}
-		w.WUInt8(uint8(i&0x7f | 0x80))
-		i >>= 7
-	}
+  p := w.growSlice(10)
+
+  for {
+    if (i & ^0x7f) == 0 {
+      (*w)[p] = byte(i)
+      return
+    }
+
+    (*w)[p] = byte(i&0x7f | 0x80)
+
+    i >>= 7 
+    p++
+  }
 }
 
+// Check if the slice is reslicebale, if so return the missing capacity 
+// and true, otherwise return 0 and false
 func (w *Buffer) checkForReeslice(n int) (int, bool) {
 	c := cap((*w))
 	l := len((*w))
@@ -98,19 +178,23 @@ func (w *Buffer) checkForReeslice(n int) (int, bool) {
 	return 0, false
 }
 
+
+// Grow expands the buffer by n bytes and returns the updated buffer.
+// If the buffer is nil, it initializes it with a capacity of 64 bytes.
+// If more capacity is needed, it doubles the capacity or ensures it can hold len + n bytes.
+// Finally, it reslices the buffer to the new length.
 func (w *Buffer) grow(n int) Buffer {
 	if *w == nil {
-		*w = make([]byte, 0, n)
+		// Preallocate 64 bytes
+		*w = make([]byte, 0, 64)
 	}
 
 	l := len(*w)
 
 	if missingCap, ok := w.checkForReeslice(n); ok {
-		c := cap(*w)
-
-		newCap := c * 2
+		newCap := cap(*w) * 2
 		if newCap < l+n {
-			newCap = l + missingCap
+			newCap = l + missingCap + n
 		}
 
 		ns := make([]byte, l, newCap)
@@ -122,8 +206,10 @@ func (w *Buffer) grow(n int) Buffer {
 	return *w
 }
 
+// Grow the slice by n bytes and return the previous length
+// as index to start writing
 func (w *Buffer) growSlice(n int) int {
-	l := len(*w) 
+	l := len(*w)
 	*w = w.grow(n)
 	return l
 }
