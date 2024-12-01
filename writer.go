@@ -186,7 +186,8 @@ func (w *Buffer) checkForReeslice(n int) (int, bool) {
 func (w *Buffer) grow(n int) Buffer {
 	if *w == nil {
 		// Preallocate 64 bytes
-		*w = make([]byte, 0, 64)
+		var buf [64]byte
+		*w = buf[:0:64]
 	}
 
 	l := len(*w)
